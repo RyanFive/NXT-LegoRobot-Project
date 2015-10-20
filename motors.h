@@ -1,0 +1,11 @@
+void rawMove(char speed);
+void setMaxSpeed(int maxSpeed);
+void regMove(char speed);
+void resetEncAndSpecEncTarg(short target, char motorChar);
+void moveInfinite();
+void moveInfiteReg();
+void move(char speed);
+void setPIDSpeedControl(string toggle);
+void moveFullTurnMove(char speed, short maxSpeed);
+void slaveMoveFullTurnMove(char speed, short maxSpeed);
+void slaveMotor(char emperor, char slave);
