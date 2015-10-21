@@ -6,10 +6,14 @@
 #include "inparkeren.h"
 #include "motors.h"
 
+#define PI 3.1415
+#define TAU 2*PI // is this fine?
+
 task main(){
 
 }
 
+// old friends
 void setMaxSpeed(int maxSpeed){
 	//  if you want to achieve consistent speeds across battery level you must either not specify speeds above the 75% level or reduce the maximum speed level.
 	nMaxRegulatedSpeedNxt = maxSpeed;
@@ -20,6 +24,45 @@ void move(char speed){
 	motor[motorB] = speed;
 }
 
+void resetEncAndSpecEncTarg(short target, char motorChar){
+	switch (motorChar){
+	case 'A':
+		nMotorEncoder[motorA] = 0;
+		nMotorEncoderTarget[motorA] = target;
+		break;
+	case 'B':
+		nMotorEncoder[motorB] = 0;
+		nMotorEncoderTarget[motorB] = target;
+		break;
+	case 'C':
+		nMotorEncoder[motorC] = 0;
+		nMotorEncoderTarget[motorC] = target;
+		break;
+	}
+}
+
+void slaveMotor(char emperor, char slave){
+	switch (emperor){
+	case 'A':
+		if (slave == 'B'){
+			nSyncedMotors = synchAB;
+			break;
+		}
+		else {
+			break;
+		}
+	case 'B':
+		if (slave == 'A'){
+			nSyncedMotors = synchBA;
+			break;
+		}
+		else{
+			break;
+		}
+	}
+}
+
+// new stuff
 // to see what happens
 void displayProcessed(){
 	nxtDisplayTextLine(3, "processed: %d", HTEOPDreadProcessed(HTEOPD));
@@ -30,24 +73,68 @@ void displayRaw(){
 	nxtDisplayTextLine(2, "raw: %d", HTEOPDreadRaw(HTEOPD));
 }
 
-void findEmptySpot(short maxSpeed, char speed){
-	// read favourable position. not sure if raw or processed is better, but let's go with raw, because I only want to know if htere's something or not.
+void inparkeren(short maxSpeed, char speed, double radius/*or float*/, short minParkWidth){
+	// read current object distance. not sure if raw or processed is better, but let's go with raw, because I only want to know if htere's something or not.
 	int searchVal = HTEOPDreadRaw(HTEOPD);
+	findEmptySpot(maxSpeed, speed, searchVal);
+	// empty spot found. Now do what you want to do once it's found. Measure 2nd searchval.
+	int holeSearchVal = HTEOPDreadRaw(HTEOPD); // sensorValue for the hole.
+	// check if the hole is big enough
+	bool canPark = measureHole(maxSpeed, speed, holeSearchVal, radius, minParkWidth);
+	if (canPark){
+		// de sensor bevindt zich nu als het goed is nog voor het gat.
+		prioToInparkeren('Y');
+		// parkeerfunctie
+	} else {
+		// nothing to be done so function stops. Or we can do some stuff but atm not necessary.
+	}
+}
+
+double degreeTimes(short distance, double radius /*or float*/){
+	n = (distance / (TAU*radius));
+	return n;
+}
+bool measureHole(short maxSpeed, char speed, int holeSearchVal, double radius, short minParkWidth){
+	double degreeTimes = degreeTimes(minParkWidth, radius); // take minparkwidth ruim.
+	double degrees = 360 * degreeTimes;
+	short degreeTarget = (short)ceil(degrees); // ceil expects a float though, we can typecast and perhaps truncate. But look into the units of measurement I'll be using and check if this causes any problems to begin with.
+	resetEncAndSpecEncTarg(degreeTarget, 'A');
+	move(speed);
+	while (abs(nMotorEncoder[motorA]) < target){
+		if ((HTEOPDreadRaw(HTEOPD) > (holeSearchVal - 500))
+			|| (HTEOPDreadRaw(HTEOPD) < (holeSearchVal + 500))){ // same crap boundaries.
+			return false; // well not big enough.
+		}
+	}
+	move(0);
+	return true; // park place found.
+}
+
+void findEmptySpot(short maxSpeed, char speed, int searchVal){
 	setMaxSpeed(maxSpeed);
-	while ((HTEOPDreadRaw(HTEOPD) > (HTEOPDreadRaw(HTEOPD) - 500))
-		&& (HTEOPDreadRaw(HTEOPD) < HTEOPDreadRaw(HTEOPD) + 500)){ // 'natte vinger' bounderies, find solid ones.
+	while ((HTEOPDreadRaw(HTEOPD) > (searchVal - 500))
+		|| (HTEOPDreadRaw(HTEOPD) < (searchVal + 500))){ // 'natte vinger' bounderies, find solid ones.
 		move(speed); // keep looking until you find an empty spot
 	}
-	// empty spot found. Now do what you want to do once it's found. 
-	// check if the hole is big enough
-
-	// some other things?
-	prioToInparkeren('Y');
+	// empty spot found, now stop moving.
+	move(0);
 }
 
 /*
 	automatic can be one of the following values: ['Y', 'N']
 */
 void prioToInparkeren(char automatic){ 
-
+	switch (automatic){
+	case 'Y':
+		// zet de auto in de juist positie om te parkeren.
+		/* Psuedo code:
+			Rij naar voren zodat de achterkant van de auto op de plek staat waar eerst de sensor stond. Maak dan een
+			draaibeweging rond de as van een van de wielen (afhankelijk ofje met neus in of uit wilt parkeren). 
+			beweeg dan in de juiste richting (vooruit of achteruit) om de auto in het gat te krijgen.
+		*/
+		break;
+	case 'N':
+		// met sensorgebruik inparkeren.
+		break;
+	}
 }
