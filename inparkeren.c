@@ -91,16 +91,16 @@ void inparkeren(short maxSpeed, char speed, double radius/*or float*/, short min
 }
 
 double degreeTimes(short distance, double radius /*or float*/){
-	n = (distance / (TAU*radius));
+	double n = (distance / (TAU*radius));
 	return n;
 }
 bool measureHole(short maxSpeed, char speed, int holeSearchVal, double radius, short minParkWidth){
-	double degreeTimes = degreeTimes(minParkWidth, radius); // take minparkwidth ruim.
-	double degrees = 360 * degreeTimes;
+	double degreeTimesVal = degreeTimes(minParkWidth, radius); // take minparkwidth ruim.
+	double degrees = 360 * degreeTimesVal;
 	short degreeTarget = (short)ceil(degrees); // ceil expects a float though, we can typecast and perhaps truncate. But look into the units of measurement I'll be using and check if this causes any problems to begin with.
 	resetEncAndSpecEncTarg(degreeTarget, 'A');
 	move(speed);
-	while (abs(nMotorEncoder[motorA]) < target){
+	while (abs(nMotorEncoder[motorA]) < degreeTarget){
 		if ((HTEOPDreadRaw(HTEOPD) > (holeSearchVal - 500))
 			|| (HTEOPDreadRaw(HTEOPD) < (holeSearchVal + 500))){ // same crap boundaries.
 			return false; // well not big enough.
@@ -123,13 +123,13 @@ void findEmptySpot(short maxSpeed, char speed, int searchVal){
 /*
 	automatic can be one of the following values: ['Y', 'N']
 */
-void prioToInparkeren(char automatic){ 
+void prioToInparkeren(char automatic){
 	switch (automatic){
 	case 'Y':
 		// zet de auto in de juist positie om te parkeren.
 		/* Psuedo code:
 			Rij naar voren zodat de achterkant van de auto op de plek staat waar eerst de sensor stond. Maak dan een
-			draaibeweging rond de as van een van de wielen (afhankelijk ofje met neus in of uit wilt parkeren). 
+			draaibeweging rond de as van een van de wielen (afhankelijk ofje met neus in of uit wilt parkeren).
 			beweeg dan in de juiste richting (vooruit of achteruit) om de auto in het gat te krijgen.
 		*/
 		break;
