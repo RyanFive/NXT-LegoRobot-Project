@@ -13,7 +13,7 @@
 #define kError   12.0
 
 task main(){
-	inparkeren(750, 50, 2.8, 25);
+	inparkeren(750, 50, 2.8, 30);
 }
 
 // old friends
@@ -88,7 +88,7 @@ void inparkeren(short maxSpeed, char speed, double radius/*or float*/, short min
 	wait10Msec(10);
 	if (canPark){
 		// de sensor bevindt zich nu als het goed is nog voor het gat.
-		prioToInparkeren('Y', maxSpeed, speed, radius, 17, 0.25, searchVal);
+		prioToInparkeren('Y', maxSpeed, speed, radius, 17, 0.24, searchVal);
 		// parkeerfunctie
 	} else {
 		// nothing to be done so function stops. Or we can do some stuff but atm not necessary.
@@ -127,7 +127,9 @@ bool measureHole(short maxSpeed, char speed, int holeSearchVal, double radius, s
 void findEmptySpot(short maxSpeed, char speed, int searchVal){
 	setMaxSpeed(maxSpeed);
 	while (true){ // 'natte vinger' bounderies, find solid ones.
-		nxtDisplayTextLine(3, "sensoe %d", HTEOPDreadRaw(HTEOPD));
+		nxtDisplayTextLine(3, "sensor %d", HTEOPDreadRaw(HTEOPD));
+		nxtDisplayTextLine(2, "seachval %d", searchVal);
+		wait10Msec(1);
 		if(!(HTEOPDreadRaw(HTEOPD) > (searchVal - 50))){
 			break;
 			}
@@ -180,7 +182,7 @@ void park(short maxSpeed, char speed, double radiusWheel, double radiusBetweenWh
 	short degreeTarget2 = (short)ceil(degrees2);
 	// 2nd degree forr the distance. How far the robot was from the park place when looking
 	double distanceFromEdge = kScale/sqrt(sensorValFromEdge)-kError;
-	short TargetFromParkPlace = getTargetFromDistance(distanceFromEdge, radiusWheel);
+	short TargetFromParkPlace = abs(getTargetFromDistance(distanceFromEdge, radiusWheel));
 	short totalInparkeerTarget =  degreeTarget2 + TargetFromParkPlace;
 	resetEncAndSpecEncTarg(totalInparkeerTarget, 'A');
 	char negSpeed = -1*speed;
@@ -193,6 +195,16 @@ void park(short maxSpeed, char speed, double radiusWheel, double radiusBetweenWh
   		//continue
   		}
   		move(0);
+  		double fileTurnDistance = getDistanceFromCircle(radiusBetweenWheels, turnTimes);
+  		double fileTurnDegreeTimesVal = degreeTimes(distance, radiusWheel /*or float*/);
+  		double fileDegrees = 360 * fileTurnDegreeTimesVal;
+  		short fileDegreeTarget = (short)ceil(fileDegrees);
+  		resetEncAndSpecEncTarg(fileDegreeTarget, 'A');
+  		motor[motorA] = -1*speed;
+  		while (abs(nMotorEncoder[motorA]) < degreeTarget){
+  			// continue
+  		}
+  		motor[motorA] = 0;
 	}
 
 /*
